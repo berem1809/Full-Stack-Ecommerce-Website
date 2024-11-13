@@ -1,0 +1,23 @@
+{
+  "name": "fullstackecommerce",
+  "version": "1.0.0",
+  "description": "Ecommerce Website using MERN stack",
+  "main": "server.js",
+  "scripts": {
+    "start": "nodemon Backend/server.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev" : "set NODE_ENV=development && nodemon Backend/server.js",
+    "prod" : "set NODE_ENV=production && nodemon Backend/server.js",
+    "seeder" : "node Backend/utils/seeder.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "mongoose": "^8.7.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.7"
+  }
+}
