@@ -1,9 +1,7 @@
-const ErrorHandler = require("../utils/errorHandler");
-
 module.exports = (err, req, res, next) => {
   err.statusCode = err.statusCode || 500;
 
-  if (process.env.NODE_ENV === "developement") {
+  if (process.env.NODE_ENV == "Development") {
     res.status(err.statusCode).json({
       success: false,
       message: err.message,
@@ -11,23 +9,30 @@ module.exports = (err, req, res, next) => {
       error: err,
     });
   }
-
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.NODE_ENV == "Production") {
     let message = err.message;
-    let error = { ...err };
+    let error = new Error(message);
 
-    if (err.name === "ValidationError") {
+    //1. Validation Errors
+//These errors occur when the data provided by the user does not meet the validation rules defined in your Mongoose schemas.
+   
+if (err.name == "ValidationError") {
       message = Object.values(err.errors).map((value) => value.message);
-      error = new error(message, 400);
+      error = new Error(message);
+      err.statusCode = 400;
     }
-    if(err.name =='castError'){
-        message =`Resource Not Found ${err.path}` ;
-        error = new Error(message)
+
+    //2. Cast Errors
+//These errors occur when an invalid ObjectId is provided, such as when querying the database with an invalid ID format.
+    if (err.name == "CastError") {
+      message = `Resource not found: ${err.path}`;
+      error = new Error(message);
+      err.statusCode = 400;
     }
 
     res.status(err.statusCode).json({
       success: false,
-      message: error.message || "Internal Server Error",
+      message: err.message || "Internal Server Error",
     });
   }
 };

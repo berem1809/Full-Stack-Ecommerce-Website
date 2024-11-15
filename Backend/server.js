@@ -14,6 +14,8 @@ console.log(`Server started on PORT: ${process.env.PORT} in ${process.env.NODE_E
 
 });
 
+//7. Unhandled Promise Rejections
+//These errors occur when a promise is rejected and there is no .catch handler to handle the rejection.
 process.on('unhandledRejection',(err) => {
     console.log(`Error: ${err.message}`);
     console.log('Shutting down the server due to unhandled rejection');
@@ -31,4 +33,4 @@ process.on('uncaughtException', (err) =>{
     })
 })
 
-console.log(a);
+// console.log(a);
