@@ -1,17 +1,20 @@
 const Productschema = require("../models/productModel");
 const ErrorHandler = require("../utils/errorHandler");
 const catchAsyncError = require("../middlewares/catchAsyncError")
-
+const APIFeatures = require("../utils/apiFeatures");
 
 // Get all products --  /api/v1/products
-exports.getProducts = async (req, res, next) => {
-  const products = await Productschema.find();
+exports.getProducts = catchAsyncError(async (req, res, next) => {
+  const apiFeatures = new APIFeatures(Productschema.find(), req.query)
+  .search()
+
+  const products = await apiFeatures.query;
   res.status(200).json({
     success: true,
     count: products.length,
-    products,
+    products
   });
-};
+});
 
 // Create Product --  /api/v1/product/new
 exports.newProduct = catchAsyncError( async (req, res, next) => {
@@ -25,13 +28,20 @@ exports.newProduct = catchAsyncError( async (req, res, next) => {
 // Get Single Product -- /api/v1/product/:id
 exports.getSingleProduct = async (req, res, next) => {
     const product = await Productschema.findById(req.params.id);
-  
+  //3. Custom Application Errors
+//These are custom errors that you define in your application, such as when a specific resource is not found.
+
+//Example:
     if (!product) {
+      // return res.status(404).json({
+    //   sucess: false,
+    //   message: "Product not found",
+    // });
        return next( new ErrorHandler('Product Not Found', 400)) ;
     }
     res.status(201).json({
       success: true,
-      product
+      product,
     });
   };
 
@@ -76,3 +86,12 @@ exports.getSingleProduct = async (req, res, next) => {
      })
 
   }
+
+  //Summary
+// Validation Errors: Occur when data does not meet validation rules.
+// Cast Errors: Occur when an invalid ObjectId is provided.
+// Custom Application Errors: Defined by the application, such as resource not found.
+// Database Connection Errors: Issues connecting to the database.
+// Syntax Errors: Mistakes in the code syntax.
+// Runtime Errors: Errors during code execution.
+// Unhandled Promise Rejections: Promises rejected without a .catch handler.
