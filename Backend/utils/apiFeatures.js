@@ -1,19 +1,32 @@
 class APIFeatures {
-    constructor(query, queryString) {
-        this.query = query;
-        this.queryString = queryString;
+    constructor(query, queryStr) {
+      this.query = query;
+      this.queryStr = queryStr;
     }
-
+  
     search() {
-        const keyword = this.queryString.keyword ? {
+      let keyword = this.queryStr.keyword
+        ? {
             name: {
-                $regex: this.queryString.keyword,
-                $options: 'i'
-            }
-        } : {}
-
-        this.query = this.query.find({ ...keyword });
-        return this;
+              $regex: this.queryStr.keyword,
+              $options: "i",
+            },
+          }
+        : {};
+  
+      this.query.find({ ...keyword });
+      return this;
     }
-}
-module.exports = APIFeatures;
+  
+    filter() {
+      const queryStrCopy = { ...this.queryStr };
+      const removeField = ["keyword", "limit", "page"];
+  
+      removeField.forEach((field) => delete queryStrCopy[field]);
+  
+      this.query.find(queryStrCopy);
+      return this;
+    }
+  }
+  
+  module.exports = APIFeatures;
