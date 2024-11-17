@@ -1,7 +1,10 @@
+const ErrorHandler = require("../utils/errorHandler");
+
 module.exports = (err, req, res, next) => {
   err.statusCode = err.statusCode || 500;
+  err.message = err.message || 'Internal Server Error';
 
-  if (process.env.NODE_ENV == "Development") {
+  if (process.env.NODE_ENV === "development") {
     res.status(err.statusCode).json({
       success: false,
       message: err.message,
@@ -9,30 +12,27 @@ module.exports = (err, req, res, next) => {
       error: err,
     });
   }
-  if (process.env.NODE_ENV == "Production") {
-    let message = err.message;
-    let error = new Error(message);
 
-    //1. Validation Errors
-//These errors occur when the data provided by the user does not meet the validation rules defined in your Mongoose schemas.
-   
-if (err.name == "ValidationError") {
-      message = Object.values(err.errors).map((value) => value.message);
-      error = new Error(message);
-      err.statusCode = 400;
+  if (process.env.NODE_ENV === "production") {
+    let error = { ...err };
+    error.message = err.message;
+
+    // Handling Mongoose validation error
+    if (err.name === "ValidationError") {
+      const message = Object.values(err.errors).map((value) => value.message);
+      error = new ErrorHandler(message, 400);
     }
 
-    //2. Cast Errors
-//These errors occur when an invalid ObjectId is provided, such as when querying the database with an invalid ID format.
-    if (err.name == "CastError") {
-      message = `Resource not found: ${err.path}`;
-      error = new Error(message);
-      err.statusCode = 400;
+    // Handling Mongoose CastError
+    if (err.name === "CastError") {
+      const message = `Resource not found: ${err.path}`;
+      error = new ErrorHandler(message, 400);
     }
 
-    res.status(err.statusCode).json({
+    res.status(error.statusCode || 500).json({
       success: false,
-      message: err.message || "Internal Server Error",
+      message: error.message || "Internal Server Error",
+      stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
     });
   }
 };
