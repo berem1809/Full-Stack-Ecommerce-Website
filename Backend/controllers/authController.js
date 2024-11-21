@@ -47,3 +47,16 @@ if(!await user.isValidPassword(password)){
 sendToken(user,201,res);
 
 });
+
+//Logout user => /api/v1/logout
+exports.logoutUser = (req, res, next) => {
+    res.cookie('token', null, { // setting token cookie to null for logout
+        expires: new Date(Date.now()),
+        httpOnly: true  // httpOnly is a flag that tells the browser not to allow client-side scripts to access the cookie
+    });
+
+    res.status(200).json({
+        success: true,
+        message: 'Logged out'
+    });
+}
