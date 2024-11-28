@@ -162,3 +162,24 @@ exports.changePassword = catchAsyncError(async (req, res, next) => {
     user,
   });
 });
+
+// Update user profile => /api/v1/myProfile/update
+exports.updateProfile = catchAsyncError(async (req, res, next) => {
+  // Update user profile
+  const newUserData = {
+    name: req.body.name,
+    email: req.body.email,
+  };
+
+  // Update avatar: TODO
+  const user = await User.findByIdAndUpdate(req.user.id, newUserData, {
+    new: true, // Return updated new user details
+    runValidators: true, 
+    useFindAndModify: false,
+  });
+
+  res.status(200).json({
+    success: true,
+    user
+  });
+});
