@@ -61,74 +61,87 @@ exports.logoutUser = (req, res, next) => {
 
 // Forgot password => /api/v1/password/forgot
 exports.forgotPassword = catchAsyncError(async (req, res, next) => {
-    const user = await User.findOne({ email: req.body.email });
-  
-    if (!user) {
-      return next(new ErrorHandler("User not found with this email", 404));
-    }
-  
-    // Get reset token
-    const resetToken = user.getResetToken();
-  
-    await user.save({ validateBeforeSave: false });
-  
-    // Create reset password url
-    const resetUrl = `${req.protocol}://${req.get(
-        "host"
-      )}/api/v1/password/reset/${resetToken}`;
-    
-      const message = `Your password reset token is as follow:\n\n${resetUrl}\n\nIf you have not requested this email, then ignore it.`;
-    
-      try {
-        await sendEmail({
-          email: user.email,
-          subject: "ShopIT Password Recovery",
-          message,
-        });
-    
-        res.status(200).json({
-          success: true,
-          message: `Email sent to: ${user.email}`,
-        });
-      } catch (error) {
-        user.resetPasswordToken = undefined;
-        user.resetPasswordTokenExpired = undefined;
-    
-        await user.save({ validateBeforeSave: false });
-    
-        return next(new ErrorHandler(error.message, 500));
-      }
+  const user = await User.findOne({ email: req.body.email });
+
+  if (!user) {
+    return next(new ErrorHandler("User not found with this email", 404));
+  }
+
+  // Get reset token
+  const resetToken = user.getResetToken();
+
+  await user.save({ validateBeforeSave: false });
+
+  // Create reset password url
+  const resetUrl = `${req.protocol}://${req.get(
+    "host"
+  )}/api/v1/password/reset/${resetToken}`;
+
+  const message = `Your password reset token is as follow:\n\n${resetUrl}\n\nIf you have not requested this email, then ignore it.`;
+
+  try {
+    await sendEmail({
+      email: user.email,
+      subject: "ShopIT Password Recovery",
+      message,
     });
 
-    // Reset password => /api/v1/password/reset/:token
-exports.resetPassword = catchAsyncError(async (req, res, next) => {
-
-    // Hash URL token
-    const resetPasswordToken = crypto.createHash("sha256").update(req.params.token).digest("hex");
-  
-    const user = await User.findOne({
-      resetPasswordToken,
-      resetPasswordTokenExpired: { $gt: Date.now() },
+    res.status(200).json({
+      success: true,
+      message: `Email sent to: ${user.email}`,
     });
-  
-    if (!user) {
-      return next(
-        new ErrorHandler("Password reset token is invalid or has been expired", 400)
-      );
-    }
-  
-    if (req.body.password !== req.body.confirmPassword) {
-      return next(new ErrorHandler("Password does not match", 400));
-    }
-  
-    // Setup new password
-    user.password = req.body.password;
-  
+  } catch (error) {
     user.resetPasswordToken = undefined;
     user.resetPasswordTokenExpired = undefined;
-  
-    await user.save(validateBeforeSave = false);
-  
-    sendToken(user, 200, res);
+
+    await user.save({ validateBeforeSave: false });
+
+    return next(new ErrorHandler(error.message, 500));
   }
+});
+
+// Reset password => /api/v1/password/reset/:token
+exports.resetPassword = catchAsyncError(async (req, res, next) => {
+  // Hash URL token
+  const resetPasswordToken = crypto
+    .createHash("sha256")
+    .update(req.params.token)
+    .digest("hex");
+
+  const user = await User.findOne({
+    resetPasswordToken,
+    resetPasswordTokenExpired: { $gt: Date.now() },
+  });
+
+  if (!user) {
+    return next(
+      new ErrorHandler(
+        "Password reset token is invalid or has been expired",
+        400
+      )
     );
+  }
+
+  if (req.body.password !== req.body.confirmPassword) {
+    return next(new ErrorHandler("Password does not match", 400));
+  }
+
+  // Setup new password
+  user.password = req.body.password;
+
+  user.resetPasswordToken = undefined;
+  user.resetPasswordTokenExpired = undefined;
+
+  await user.save((validateBeforeSave = false));
+
+  sendToken(user, 200, res);
+});
+
+//Get currently logged in user details => /api/v1/myProfile
+exports.getUserProfile = catchAsyncError(async (req, res, next) => {
+  const user = await User.findById(req.user.id); //req.user.id is coming from the protect middleware
+  res.status(200).json({
+    success: true,
+    user,
+  });
+});
