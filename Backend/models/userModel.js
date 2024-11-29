@@ -18,9 +18,9 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
     required: [true, 'Please Enter Password'],
-    maxlength: [6, 'Password cannot exceed 6 characters'],
-    select: false  // Hide password from user
-  },
+    maxlength: [6, 'Password cannot exceed 6 characters'], // This is wrong
+    select: false
+},
   avatar: {
     type: String,
     required: true
@@ -37,13 +37,30 @@ const userSchema = new mongoose.Schema({
   }
 });
 
-// Encrypting password before saving user
-userSchema.pre('save', async function (next) {
+userSchema.pre('save', async function(next) {
+  // Only hash password if it's modified
   if (!this.isModified('password')) {
-    next();
+      return next();
   }
-  this.password = await bcrypt.hash(this.password, 10);
+  
+  try {
+      // Hash password with bcrypt
+      const salt = await bcrypt.genSalt(10);
+      this.password = await bcrypt.hash(this.password, salt);
+      next();
+  } catch (error) {
+      next(error);
+  }
 });
+
+userSchema.methods.isValidPassword = async function(enteredPassword) {
+  try {
+      return await bcrypt.compare(enteredPassword, this.password);
+  } catch (error) {
+      console.error('Password validation error:', error);
+      return false;
+  }
+};
 
 // Return JWT token
 userSchema.methods.getJWTToken = function () {

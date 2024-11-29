@@ -22,24 +22,46 @@ exports.registerUser = catchAsyncError(async (req, res, next) => {
 });
 
 // Login user => /api/v1/login
+// exports.loginUser = catchAsyncError(async (req, res, next) => {
+//   const { email, password } = req.body;
+
+//   // Check if email and password is entered by user
+//   if (!email || !password) {
+//     return next(new ErrorHandler("Please enter email & password", 400));
+//   }
+
+//   // Finding user in database
+//   const user = await User.findOne({ email }).select("+password");
+
+//   // Check if user not found or password is incorrect
+//   if (!user) {
+//     return next(new ErrorHandler("Invalid Email or Password", 401));
+//   }
+
+//   // Check if password is correct
+//   if (!(await user.isValidPassword(password))) {
+//     return next(new ErrorHandler("Invalid Email or Password", 401));
+//   }
+
+//   sendToken(user, 201, res);
+// });
+
 exports.loginUser = catchAsyncError(async (req, res, next) => {
   const { email, password } = req.body;
 
-  // Check if email and password is entered by user
   if (!email || !password) {
     return next(new ErrorHandler("Please enter email & password", 400));
   }
 
-  // Finding user in database
   const user = await User.findOne({ email }).select("+password");
 
-  // Check if user not found or password is incorrect
   if (!user) {
     return next(new ErrorHandler("Invalid Email or Password", 401));
   }
 
-  // Check if password is correct
-  if (!(await user.isValidPassword(password))) {
+  const isValid = await user.isValidPassword(password);
+
+  if (!isValid) {
     return next(new ErrorHandler("Invalid Email or Password", 401));
   }
 
@@ -58,6 +80,38 @@ exports.logoutUser = (req, res, next) => {
     message: "Logged out",
   });
 };
+
+
+exports.changePassword = catchAsyncError(async (req, res, next) => {
+  const { oldPassword, newPassword } = req.body;
+
+  if (!oldPassword || !newPassword) {
+    return next(
+      new ErrorHandler("Please enter both old and new password", 400)
+    );
+  }
+
+  const user = await User.findById(req.user.id).select("+password");
+
+  // Add debug log
+  console.log("User found:", user._id);
+
+  const isMatched = await user.isValidPassword(oldPassword);
+  if (!isMatched) {
+    return next(new ErrorHandler("Old password is incorrect", 400));
+  }
+
+  // Set new password
+  user.password = newPassword;
+
+  // Add debug log before save
+  console.log("About to save new password");
+  await user.save();
+  console.log("Password saved successfully");
+
+  sendToken(user, 200, res);
+});
+
 
 // Forgot password => /api/v1/password/forgot
 exports.forgotPassword = catchAsyncError(async (req, res, next) => {
@@ -146,21 +200,46 @@ exports.getUserProfile = catchAsyncError(async (req, res, next) => {
   });
 });
 
-// Update / Change password => /api/v1/password/update
+// // Update / Change password => /api/v1/password/update
+// exports.changePassword = catchAsyncError(async (req, res, next) => {
+//   const user = await User.findById(req.user.id).select("+password");
+
+//   // Check previous user password
+//   const isMatched = await user.isValidPassword(req.body.oldPassword);
+
+//   if (!isMatched) {
+//     return next(new ErrorHandler("Old password is incorrect", 400));
+//   }
+
+//   res.status(200).json({
+//     success: true,
+//     user,
+//   });
+// });
 exports.changePassword = catchAsyncError(async (req, res, next) => {
+  const { oldPassword, newPassword } = req.body;
+
+  if (!oldPassword || !newPassword) {
+    return next(
+      new ErrorHandler("Please enter both old and new password", 400)
+    );
+  }
+
+  // Find user and select password field
   const user = await User.findById(req.user.id).select("+password");
 
-  // Check previous user password
-  const isMatched = await user.isValidPassword(req.body.oldPassword);
-
+  // Verify old password
+  const isMatched = await user.isValidPassword(oldPassword);
   if (!isMatched) {
     return next(new ErrorHandler("Old password is incorrect", 400));
   }
- 
-  res.status(200).json({
-    success: true,
-    user,
-  });
+
+  // Important: Set new password and force the save to trigger password hashing
+  user.password = newPassword;
+  user.save({ validateBeforeSave: true }); // Force validation and hashing
+
+  // Update the token and send response
+  sendToken(user, 200, res);
 });
 
 // Update user profile => /api/v1/myProfile/update
@@ -174,12 +253,12 @@ exports.updateProfile = catchAsyncError(async (req, res, next) => {
   // Update avatar: TODO
   const user = await User.findByIdAndUpdate(req.user.id, newUserData, {
     new: true, // Return updated new user details
-    runValidators: true, 
+    runValidators: true,
     useFindAndModify: false,
   });
 
   res.status(200).json({
     success: true,
-    user
+    user,
   });
 });
