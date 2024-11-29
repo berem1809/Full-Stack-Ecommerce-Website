@@ -262,3 +262,66 @@ exports.updateProfile = catchAsyncError(async (req, res, next) => {
     user,
   });
 });
+
+
+
+//---------------------------------------------------------Admin Routes------------------------------------------------------------
+
+
+// Admin Routes - Admin can get all users => /api/v1/admin/users
+exports.getAllUsers = catchAsyncError(async (req, res, next) => {
+  const users = await User.find();
+
+  res.status(200).json({
+    success: true,
+    users,
+  });
+});
+
+// Admin: get specifoc user's details
+exports.getUserDetails = catchAsyncError(async (req, res, next) => {
+  const user = await User.findById(req.params.id);  //req.params.id is coming from the route
+
+if(!user){
+  return next(new ErrorHandler(`User does not found with id: ${req.params.id}`, 404));
+}
+  res.status(200).json({
+    success: true,
+    user,
+  });
+});
+
+//Admin : Update user details => /api/v1/admin/user/:id
+exports.updateUser = catchAsyncError(async (req, res, next) => {
+  const newUserData = {
+    name: req.body.name,
+    email: req.body.email,
+    role: req.body.role,
+  };
+
+  const user = await User.findByIdAndUpdate(req.params.id, newUserData, {
+    new: true,
+    runValidators: true,
+    useFindAndModify: false,
+  });
+
+  res.status(200).json({
+    success: true,
+    user,
+  });
+});
+
+//Admin: Delete user => /api/v1/admin/user/:id
+exports.deleteUser = catchAsyncError(async (req, res, next) => {
+  const user = await User.findById(req.params.id); //req.params.id is coming from the route
+
+  if(!user){
+    return next(new ErrorHandler(`User does not found with id: ${req.params.id}`, 404));
+  }
+  await User.deleteOne({ _id: req.params.id }); //req.params.id is coming from the route which has been passed from the frontend
+
+  res.status(200).json({
+    success: true,
+    message: "User is deleted",
+  });
+});
