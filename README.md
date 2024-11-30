@@ -1,4 +1,4 @@
-## Full-Stack E-commerce Website
+## ClickNBuy - Full Stack E-commerce Website
 A modern and fully responsive e-commerce platform built with the MERN (MongoDB, Express, React, Node.js) stack. This application provides a seamless shopping experience for users, including features such as product browsing, cart management, user authentication, and secure payments.
 
 ### 🛠️ Features
