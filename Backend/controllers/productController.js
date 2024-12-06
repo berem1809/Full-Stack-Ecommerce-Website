@@ -100,3 +100,57 @@ exports.getSingleProduct = async (req, res, next) => {
 // Syntax Errors: Mistakes in the code syntax.
 // Runtime Errors: Errors during code execution.
 // Unhandled Promise Rejections: Promises rejected without a .catch handler.
+
+
+// Create Review - api/v1/review
+exports.createReview = catchAsyncError(async (req, res, next) => {
+  const { rating, comment, productId } = req.body;
+
+  const review = {
+    user: req.user._id,
+    rating: Number(rating),
+    comment,
+  };
+
+  const product = await Productschema.findById(productId);
+
+  if (!product) {
+    return next(new ErrorHandler('Product not found', 404));
+  }
+
+  const isReviewed = product.reviews.find(
+    (review) => review.user.toString() === req.user._id.toString()
+  );
+
+  if (isReviewed) {
+    product.reviews.forEach((review) => {
+      if (review.user.toString() === req.user._id.toString()) {
+        review.comment = comment;
+        review.rating = rating;
+      }
+    });
+  } else {
+    product.reviews.push(review);
+    product.numOfReviews = product.reviews.length;
+  }
+
+  product.ratings =
+    product.reviews.reduce((acc, item) => item.rating + acc, 0) /
+    product.reviews.length;
+
+  await product.save({ validateBeforeSave: false });
+
+  res.status(200).json({
+    success: true,
+  });
+});
+
+//Get reviews - api/v1/reviews?id={productId}
+exports.getReviews =  catchAsyncError(async ( req,res,next) => {
+  const product = await Productschema.findById(req.query.id);
+
+  res.status(200).json({
+    success: true,
+    reviews: product.reviews
+  })
+})
