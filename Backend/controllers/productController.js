@@ -154,3 +154,53 @@ exports.getReviews =  catchAsyncError(async ( req,res,next) => {
     reviews: product.reviews
   })
 })
+
+// productController.js
+exports.deleteReview = catchAsyncError(async (req, res, next) => {
+  // Fix query parameter case sensitivity
+  const productId = req.query.productid || req.query.productId;
+  const reviewId = req.query.id;
+
+  if (!productId) {
+    return next(new ErrorHandler('Please provide product ID', 400));
+  }
+
+  if (!reviewId) {
+    return next(new ErrorHandler('Please provide review ID', 400));
+  }
+
+  const product = await Productschema.findById(productId);
+
+  if (!product) {
+    return next(new ErrorHandler('Product not found', 404));
+  }
+
+  // Filter out the review
+  const reviews = product.reviews.filter(
+    review => review._id.toString() !== reviewId
+  );
+
+  // Recalculate ratings
+  const numOfReviews = reviews.length;
+  const ratings = numOfReviews === 0 ? 0 : 
+    reviews.reduce((acc, item) => item.rating + acc, 0) / numOfReviews;
+
+  // Update product
+  await Productschema.findByIdAndUpdate(
+    productId,
+    {
+      reviews,
+      ratings,
+      numOfReviews
+    },
+    {
+      new: true,
+      runValidators: true
+    }
+  );
+
+  res.status(200).json({
+    success: true,
+    message: 'Review deleted successfully'
+  });
+});

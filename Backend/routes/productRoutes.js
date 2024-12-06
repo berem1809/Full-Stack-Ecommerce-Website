@@ -21,7 +21,8 @@ const {
     updateProduct, 
     deleteProduct, 
     createReview ,
-    getReviews
+    getReviews,
+    deleteReview
 } = require('../controllers/productController');
 const { isAuthenticatedUser, authorizeRoles } = require('../middlewares/authenticate');
 const router = express.Router();
@@ -31,6 +32,7 @@ router.route('/products').get(isAuthenticatedUser, getProducts);
 router.route('/product/new').post(isAuthenticatedUser, authorizeRoles('admin'), newProduct);
 router.route('/review').put(isAuthenticatedUser, createReview); 
 router.route('/reviews').get(isAuthenticatedUser, getReviews);
+router.route('/review').delete(isAuthenticatedUser, deleteReview);
 
 // Dynamic routes last
 router.route('/product/:id')
